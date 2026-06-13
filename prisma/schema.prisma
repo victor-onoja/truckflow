@@ -1,0 +1,112 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  GATE_OFFICER
+  YARD_OPERATOR
+  FUELING_STAFF
+  SUPERVISOR
+  DISTRIBUTION_LEAD
+  ADMIN
+}
+
+enum VisitType {
+  FULL_CYCLE
+  OFFLOAD_ONLY
+  LOAD_ONLY
+}
+
+enum VisitStatus {
+  ACTIVE
+  COMPLETED
+}
+
+enum QRType {
+  PERMANENT
+  SINGLE_USE
+}
+
+enum NotifChannel {
+  IN_APP
+  EMAIL
+  SMS
+}
+
+model User {
+  id        String       @id @default(cuid())
+  phone     String       @unique
+  pinHash   String
+  fullName  String
+  role      Role
+  isActive  Boolean      @default(true)
+  events    StageEvent[]
+  createdAt DateTime     @default(now())
+}
+
+model Truck {
+  id          String   @id @default(cuid())
+  plateNumber String   @unique
+  driverName  String
+  isActive    Boolean  @default(true)
+  qrCodes     QRCode[]
+  visits      Visit[]
+}
+
+model QRCode {
+  id         String    @id @default(cuid())
+  truckId    String
+  truck      Truck     @relation(fields: [truckId], references: [id])
+  codeString String    @unique
+  type       QRType    @default(PERMANENT)
+  isActive   Boolean   @default(true)
+  issuedAt   DateTime  @default(now())
+  expiresAt  DateTime?
+}
+
+model Visit {
+  id           String      @id @default(cuid())
+  truckId      String
+  truck        Truck       @relation(fields: [truckId], references: [id])
+  visitType    VisitType
+  status       VisitStatus @default(ACTIVE)
+  gateInAt     DateTime
+  gateOutAt    DateTime?
+  totalMinutes Int?
+  events       StageEvent[]
+  createdAt    DateTime    @default(now())
+}
+
+model StageEvent {
+  id              String    @id @default(cuid())
+  visitId         String
+  visit           Visit     @relation(fields: [visitId], references: [id])
+  stageKey        String
+  stageNum        Int
+  startAt         DateTime
+  endAt           DateTime?
+  durationMinutes Int?
+  notes           String?
+  triggeredById   String
+  triggeredBy     User      @relation(fields: [triggeredById], references: [id])
+  isOverride      Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+
+  @@unique([visitId, stageKey])
+}
+
+model Notification {
+  id        String       @id @default(cuid())
+  userId    String
+  channel   NotifChannel @default(IN_APP)
+  title     String
+  body      String
+  visitId   String?
+  readAt    DateTime?
+  createdAt DateTime     @default(now())
+}
