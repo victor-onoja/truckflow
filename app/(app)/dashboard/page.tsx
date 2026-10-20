@@ -6,7 +6,6 @@ import { ChevronRight, CircleCheck } from 'lucide-react';
 import VisitTypeBadge from '@/components/VisitTypeBadge';
 import StagePill from '@/components/StagePill';
 import StageTimesChart from '@/components/StageTimesChart';
-import TctChart from '@/components/TctChart';
 import { useTargets } from '@/hooks/useTargets';
 import { useLiveQueue } from '@/hooks/useLiveQueue';
 import { fmtMinutes, fmtTime } from '@/lib/client-types';
@@ -96,14 +95,6 @@ export default function DashboardPage() {
                 ))}
               </ul>
             )}
-          </section>
-
-          <section aria-labelledby="tct-h" className="bg-surface rounded-2xl shadow-card p-5">
-            <h2 id="tct-h" className="text-lg font-semibold">TCT by visit type</h2>
-            <p className="text-sm text-ink-2 mb-4">
-              Average gate in to gate out · {filters.dateFrom || filters.dateTo ? 'selected dates' : 'all completed visits'}
-            </p>
-            {averages ? <TctChart averages={averages} targets={targets} /> : <div className="h-32 rounded-xl bg-charcoal/[0.05] animate-pulse" />}
           </section>
 
           <section aria-labelledby="times-h" className="bg-surface rounded-2xl shadow-card p-5">

@@ -38,7 +38,7 @@ export default function QueuePage() {
   return (
     <div className="max-w-xl mx-auto">
       <div className="flex items-end justify-between gap-3 mb-1">
-        <h1 className="text-2xl font-bold tracking-tight">In the plant</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Queue</h1>
         <p className="text-sm text-ink-2 tnum" aria-live="polite">
           {error ? (
             <span className="inline-flex items-center gap-1.5 text-danger font-medium">
@@ -100,7 +100,7 @@ export default function QueuePage() {
         <section aria-labelledby={isField ? 'rest-h' : undefined}>
           {isField && (
             <h2 id="rest-h" className="text-lg font-semibold mb-3">
-              Elsewhere in the plant <span className="text-ink-2 font-normal tnum">({rest.length})</span>
+              In the plant <span className="text-ink-2 font-normal tnum">({rest.length})</span>
             </h2>
           )}
           <ul className="space-y-3">

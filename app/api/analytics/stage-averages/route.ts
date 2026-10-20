@@ -20,7 +20,6 @@ export async function GET(req: NextRequest) {
     const map: Record<string, Record<string, number[]>> = {};
     for (const v of visits) {
       if (!map[v.visitType]) map[v.visitType] = {};
-      if (v.totalMinutes != null) (map[v.visitType].TCT ??= []).push(v.totalMinutes);
       for (const e of v.events) {
         if (e.durationMinutes == null) continue;
         if (!map[v.visitType][e.stageKey]) map[v.visitType][e.stageKey] = [];
