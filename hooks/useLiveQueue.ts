@@ -1,24 +1,22 @@
 import useSWR from 'swr';
+import type { QueueEntry } from '@/lib/client-types';
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json()).then((r) => r.data);
+type Stamped = { rows: QueueEntry[]; at: number };
 
-export type QueueEntry = {
-  id: string;
-  truckPlate: string;
-  driverName: string;
-  visitType: string;
-  currentStage: string;
-  currentStageName: string;
-  elapsedInStage: number | null;
-  totalElapsed: number;
-  queuingMinutes: number | null;
-  gateInAt: string;
-  queuePosition: number;
-};
+const fetcher = (url: string): Promise<Stamped> =>
+  fetch(url)
+    .then((r) => r.json())
+    .then((r) => {
+      if (!r.ok) throw new Error(r.error);
+      return { rows: r.data, at: Date.now() };
+    });
+
+export type { QueueEntry };
 
 export function useLiveQueue() {
-  const { data, error, isLoading } = useSWR<QueueEntry[]>('/api/queue', fetcher, {
+  const { data, error, isLoading, mutate } = useSWR<Stamped>('/api/queue', fetcher, {
     refreshInterval: 10000,
+    revalidateOnFocus: true,
   });
-  return { queue: data ?? [], error, isLoading };
+  return { queue: data?.rows ?? [], updatedAt: data?.at ?? null, error, isLoading, refresh: mutate };
 }

@@ -4,6 +4,7 @@ import { withAuth, ok, err } from '@/lib/api-helpers';
 import { gateIn } from '@/lib/stage-machine';
 
 const schema = z.object({
+  truckId: z.string().optional(),
   qrCode: z.string().optional(),
   manualCode: z.string().optional(),
   visitType: z.enum(['FULL_CYCLE', 'OFFLOAD_ONLY', 'LOAD_ONLY']).default('FULL_CYCLE'),
@@ -15,11 +16,11 @@ export async function POST(req: NextRequest) {
     const parsed = schema.safeParse(body);
     if (!parsed.success) return err(parsed.error.message);
 
-    const { qrCode, manualCode, visitType } = parsed.data;
-    if (!qrCode && !manualCode) return err('qrCode or manualCode is required');
+    const { truckId, qrCode, manualCode, visitType } = parsed.data;
+    if (!truckId && !qrCode && !manualCode) return err('Scan a QR code or type a plate number');
 
     try {
-      const visit = await gateIn({ qrCode, manualCode, visitType, userId: session.userId });
+      const visit = await gateIn({ truckId, qrCode, manualCode, visitType, userId: session.userId });
       return ok(visit, 201);
     } catch (e) {
       return err(e instanceof Error ? e.message : 'Gate in failed');

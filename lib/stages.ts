@@ -28,15 +28,6 @@ export const VISIT_SEQUENCES: Record<VisitType, StageKey[]> = {
   LOAD_ONLY:    ['GATE_IN', 'QUEUING', 'LOADING', 'LATCHING', 'FUELING', 'GATE_OUT'],
 };
 
-export const THRESHOLDS_MIN: Record<string, { amber: number; red: number }> = {
-  QUEUING:    { amber: 30, red: 60 },
-  UNLATCHING: { amber: 10, red: 20 },
-  OFFLOADING: { amber: 45, red: 90 },
-  LOADING:    { amber: 45, red: 90 },
-  LATCHING:   { amber: 10, red: 20 },
-  FUELING:    { amber: 20, red: 40 },
-};
-
 // Role permission map: which roles may act on which stage keys
 export const STAGE_ROLE_PERMISSIONS: Record<StageKey, string[]> = {
   GATE_IN:    ['GATE_OFFICER', 'ADMIN'],
@@ -48,6 +39,18 @@ export const STAGE_ROLE_PERMISSIONS: Record<StageKey, string[]> = {
   FUELING:    ['FUELING_STAFF', 'ADMIN'],
   GATE_OUT:   ['GATE_OFFICER', 'ADMIN'],
 };
+
+// Physically back-to-back stages done by the same crew at the same bay.
+// Finishing the first starts the second in one action, so the operator taps once.
+// Offloading → Loading is deliberately NOT chained: the truck usually moves bays
+// and that gap is real waiting time that must not be counted as loading.
+export const CHAINED_NEXT: Partial<Record<StageKey, StageKey>> = {
+  UNLATCHING: 'OFFLOADING',
+  LOADING: 'LATCHING',
+};
+
+// How long an action can be taken back after it was recorded.
+export const UNDO_WINDOW_MS = 2 * 60_000;
 
 export function getActionableStages(visitType: VisitType): StageKey[] {
   return VISIT_SEQUENCES[visitType].filter(

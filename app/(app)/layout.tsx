@@ -9,7 +9,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex flex-col min-h-full">
       <Header role={session.role} fullName={session.fullName} />
-      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-4">{children}</main>
+      <main className="flex-1 max-w-5xl mx-auto w-full px-4 pt-5 pb-28 md:pb-10">{children}</main>
     </div>
   );
 }

@@ -1,84 +1,115 @@
 'use client';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { ScanLine, Truck, WifiOff } from 'lucide-react';
 import { useLiveQueue } from '@/hooks/useLiveQueue';
-import VisitTypeBadge from '@/components/VisitTypeBadge';
-import StagePill from '@/components/StagePill';
-import { THRESHOLDS_MIN } from '@/lib/stages';
+import { useMe } from '@/hooks/useMe';
+import QueueRow from '@/components/QueueRow';
+import { FIELD_ROLES } from '@/lib/access';
+import { canDo, type QueueEntry } from '@/lib/client-types';
 
-function elapsed(ms: number): string {
-  const h = Math.floor(ms / 60);
-  const m = ms % 60;
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+const SEVERITY = { over: 0, warn: 1, ok: 2 } as const;
+
+function byUrgency(a: QueueEntry, b: QueueEntry) {
+  return SEVERITY[a.health] - SEVERITY[b.health] || (b.minutesInStep ?? 0) - (a.minutesInStep ?? 0);
 }
 
-function statusColor(stageKey: string, minutes: number | null): string {
-  if (minutes === null) return 'border-l-4 border-green-ok';
-  const t = THRESHOLDS_MIN[stageKey];
-  if (!t) return 'border-l-4 border-green-ok';
-  if (minutes >= t.red) return 'border-l-4 border-red-alert';
-  if (minutes >= t.amber) return 'border-l-4 border-amber';
-  return 'border-l-4 border-green-ok';
+/** Seconds since the queue last refreshed, re-rendered every 5s. */
+function useAge(updatedAt: number | null) {
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(id);
+  }, []);
+  return updatedAt && now > updatedAt ? Math.round((now - updatedAt) / 1000) : 0;
 }
 
 export default function QueuePage() {
-  const { queue, isLoading } = useLiveQueue();
+  const { queue, updatedAt, isLoading, error, refresh } = useLiveQueue();
+  const me = useMe();
+  const role = me?.role ?? '';
+  const age = useAge(updatedAt);
+  const isField = FIELD_ROLES.includes(role) && role !== 'ADMIN';
+
+  const mine = isField ? queue.filter((e) => canDo(e.next, role)).sort(byUrgency) : [];
+  const rest = isField ? queue.filter((e) => !canDo(e.next, role)) : [...queue].sort(byUrgency);
+  const overdue = queue.filter((e) => e.health === 'over').length;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold">Live Queue</h2>
-        <span className="text-sm text-charcoal/50 font-mono">{queue.length} active</span>
+    <div className="max-w-xl mx-auto">
+      <div className="flex items-end justify-between gap-3 mb-1">
+        <h1 className="text-2xl font-bold tracking-tight">In the plant</h1>
+        <p className="text-sm text-ink-2 tnum" aria-live="polite">
+          {error ? (
+            <span className="inline-flex items-center gap-1.5 text-danger font-medium">
+              <WifiOff className="size-4" aria-hidden /> Offline, retrying
+            </span>
+          ) : (
+            <>Updated {age < 5 ? 'just now' : `${age}s ago`}</>
+          )}
+        </p>
       </div>
+      <p className="text-ink-2 mb-5 tnum">
+        {queue.length} {queue.length === 1 ? 'truck' : 'trucks'}
+        {overdue > 0 && <span className="text-danger font-semibold"> · {overdue} overdue</span>}
+      </p>
 
       {isLoading && (
-        <div className="space-y-3">
-          {[1,2,3].map((i) => (
-            <div key={i} className="h-24 bg-charcoal/5 rounded-xl animate-pulse" />
+        <ul className="space-y-3" aria-hidden>
+          {[0, 1, 2].map((i) => (
+            <li key={i} className="h-32 rounded-2xl bg-charcoal/[0.05] animate-pulse" />
           ))}
-        </div>
+        </ul>
       )}
 
       {!isLoading && queue.length === 0 && (
-        <div className="text-center py-16 text-charcoal/40">
-          <div className="text-5xl mb-3">🚛</div>
-          <p className="font-semibold text-lg">No trucks on site</p>
-          <p className="text-sm">Gate in a truck to get started</p>
+        <div className="rounded-2xl border-2 border-dashed border-line-strong px-6 py-12 text-center">
+          <Truck className="size-10 mx-auto text-ink-2" strokeWidth={1.5} aria-hidden />
+          <p className="font-semibold text-lg mt-3">No trucks in the plant</p>
+          <p className="text-ink-2 mt-1">
+            {role === 'GATE_OFFICER' || role === 'ADMIN'
+              ? 'Scan a truck’s QR code at the gate to start its visit.'
+              : 'Trucks appear here the moment the gate checks them in.'}
+          </p>
+          {(role === 'GATE_OFFICER' || role === 'ADMIN') && (
+            <Link href="/scan" className="mt-5 inline-flex items-center gap-2 min-h-14 px-6 rounded-xl bg-amber font-semibold hover:bg-amber-light">
+              <ScanLine className="size-5" aria-hidden /> Scan a truck
+            </Link>
+          )}
         </div>
       )}
 
-      <div className="space-y-3">
-        {queue.map((entry) => (
-          <Link
-            key={entry.id}
-            href={`/visit/${entry.id}`}
-            className={`block bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow ${statusColor(entry.currentStage, entry.elapsedInStage)}`}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-mono font-bold text-lg tracking-wide">{entry.truckPlate}</span>
-                  <VisitTypeBadge type={entry.visitType} />
-                </div>
-                <p className="text-sm text-charcoal/60 truncate">{entry.driverName}</p>
-              </div>
-              <div className="text-right flex-shrink-0">
-                <StagePill
-                  stageKey={entry.currentStage}
-                  stageName={entry.currentStageName}
-                  elapsedMinutes={entry.elapsedInStage}
-                />
-                <p className="text-xs text-charcoal/40 mt-1 font-mono">Total: {elapsed(entry.totalElapsed)}</p>
-              </div>
-            </div>
+      {isField && queue.length > 0 && (
+        <section aria-labelledby="mine-h" className="mb-8">
+          <h2 id="mine-h" className="text-lg font-semibold mb-3">
+            Your turn <span className="text-ink-2 font-normal tnum">({mine.length})</span>
+          </h2>
+          {mine.length === 0 ? (
+            <p className="text-ink-2 rounded-2xl bg-surface px-4 py-5">Nothing waiting on you right now.</p>
+          ) : (
+            <ul className="space-y-3">
+              {mine.map((e) => (
+                <QueueRow key={e.id} entry={e} role={role} showAction onChanged={() => refresh()} />
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
-            <div className="mt-2 flex gap-4 text-xs text-charcoal/50 font-mono">
-              <span>#{entry.queuePosition}</span>
-              {entry.queuingMinutes !== null && <span>Queued: {entry.queuingMinutes}m</span>}
-              <span>In: {new Date(entry.gateInAt).toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' })}</span>
-            </div>
-          </Link>
-        ))}
-      </div>
+      {rest.length > 0 && (
+        <section aria-labelledby={isField ? 'rest-h' : undefined}>
+          {isField && (
+            <h2 id="rest-h" className="text-lg font-semibold mb-3">
+              Elsewhere in the plant <span className="text-ink-2 font-normal tnum">({rest.length})</span>
+            </h2>
+          )}
+          <ul className="space-y-3">
+            {rest.map((e) => (
+              <QueueRow key={e.id} entry={e} role={role} showAction={role === 'ADMIN'} onChanged={() => refresh()} />
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

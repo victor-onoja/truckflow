@@ -1,6 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
+import { Download, QrCode, X } from 'lucide-react';
+import { Button, ErrorNote } from '@/components/ui';
+import { ALL_ROLES, ROLE_LABELS } from '@/lib/access';
+import TargetsEditor from '@/components/TargetsEditor';
 
 type Truck = {
   id: string;
@@ -12,20 +15,28 @@ type Truck = {
 
 type User = { id: string; phone: string; fullName: string; role: string; isActive: boolean };
 
-const ROLES = ['GATE_OFFICER', 'YARD_OPERATOR', 'FUELING_STAFF', 'SUPERVISOR', 'DISTRIBUTION_LEAD', 'ADMIN'];
+const inputCls =
+  'w-full min-h-12 rounded-xl border-2 border-line bg-surface px-4 text-base focus:border-amber-ink focus:outline-none placeholder:text-ink-2/80';
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="block text-sm font-semibold mb-1">{label}</span>
+      {children}
+    </label>
+  );
+}
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<'trucks' | 'users'>('trucks');
-  const [trucks, setTrucks] = useState<Truck[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+  const [tab, setTab] = useState<'trucks' | 'users' | 'targets'>('trucks');
+  const [trucks, setTrucks] = useState<Truck[] | null>(null);
+  const [users, setUsers] = useState<User[] | null>(null);
 
-  // Truck form
   const [plate, setPlate] = useState('');
   const [driver, setDriver] = useState('');
   const [truckError, setTruckError] = useState('');
   const [truckLoading, setTruckLoading] = useState(false);
 
-  // User form
   const [uPhone, setUPhone] = useState('');
   const [uPin, setUPin] = useState('');
   const [uName, setUName] = useState('');
@@ -33,11 +44,10 @@ export default function AdminPage() {
   const [userError, setUserError] = useState('');
   const [userLoading, setUserLoading] = useState(false);
 
-  // QR modal
-  const [qrTruck, setQrTruck] = useState<Truck | null>(null);
+  const [openQr, setOpenQr] = useState<string | null>(null);
 
-  const loadTrucks = () => fetch('/api/admin/trucks').then((r) => r.json()).then((j) => { if (j.ok) setTrucks(j.data); });
-  const loadUsers = () => fetch('/api/admin/users').then((r) => r.json()).then((j) => { if (j.ok) setUsers(j.data); });
+  const loadTrucks = () => fetch('/api/admin/trucks').then((r) => r.json()).then((j) => setTrucks(j.ok ? j.data : []));
+  const loadUsers = () => fetch('/api/admin/users').then((r) => r.json()).then((j) => setUsers(j.ok ? j.data : []));
 
   useEffect(() => { loadTrucks(); loadUsers(); }, []);
 
@@ -45,129 +55,161 @@ export default function AdminPage() {
     e.preventDefault(); setTruckError(''); setTruckLoading(true);
     const r = await fetch('/api/admin/trucks', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plateNumber: plate, driverName: driver }),
+      body: JSON.stringify({ plateNumber: plate.trim(), driverName: driver.trim() }),
     });
     const j = await r.json();
     setTruckLoading(false);
-    if (!j.ok) { setTruckError(j.error); return; }
-    setPlate(''); setDriver(''); loadTrucks();
+    if (!j.ok) {
+      setTruckError(/Unique constraint/i.test(j.error) ? `${plate} is already registered.` : j.error);
+      return;
+    }
+    setPlate(''); setDriver(''); setOpenQr(j.data.id); loadTrucks();
   };
 
   const addUser = async (e: React.FormEvent) => {
     e.preventDefault(); setUserError(''); setUserLoading(true);
     const r = await fetch('/api/admin/users', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: uPhone, pin: uPin, fullName: uName, role: uRole }),
+      body: JSON.stringify({ phone: uPhone.trim(), pin: uPin, fullName: uName.trim(), role: uRole }),
     });
     const j = await r.json();
     setUserLoading(false);
-    if (!j.ok) { setUserError(j.error); return; }
+    if (!j.ok) {
+      setUserError(/Unique constraint/i.test(j.error) ? 'That phone number already has an account.' : j.error);
+      return;
+    }
     setUPhone(''); setUPin(''); setUName(''); loadUsers();
   };
 
   return (
-    <div>
-      <h2 className="text-xl font-bold mb-4">Admin</h2>
+    <div className="max-w-xl mx-auto">
+      <h1 className="text-2xl font-bold tracking-tight mb-4">Admin</h1>
 
-      <div className="flex rounded-xl bg-charcoal/10 p-1 mb-5">
-        {(['trucks', 'users'] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`flex-1 py-2 rounded-lg font-semibold text-sm capitalize transition-all ${tab === t ? 'bg-charcoal text-paper shadow' : 'text-charcoal/60'}`}>
-            {t}
+      <div role="tablist" className="flex rounded-xl bg-charcoal/[0.07] p-1 mb-6">
+        {(['trucks', 'users', 'targets'] as const).map((t) => (
+          <button
+            key={t}
+            role="tab"
+            aria-selected={tab === t}
+            onClick={() => setTab(t)}
+            className={`flex-1 min-h-11 rounded-lg font-semibold transition-colors ${tab === t ? 'bg-surface shadow-card' : 'text-ink-2 hover:text-charcoal'}`}
+          >
+            {t === 'trucks' ? `Trucks${trucks ? ` (${trucks.length})` : ''}` : t === 'users' ? `People${users ? ` (${users.length})` : ''}` : 'Targets'}
           </button>
         ))}
       </div>
 
       {tab === 'trucks' && (
-        <div>
-          <form onSubmit={addTruck} className="bg-white rounded-xl p-4 shadow-sm mb-4">
-            <h3 className="font-bold text-sm uppercase tracking-wide text-charcoal/50 mb-3">Register Truck</h3>
-            <input value={plate} onChange={(e) => setPlate(e.target.value.toUpperCase())} placeholder="Plate Number (KJA-482-XA)"
-              className="w-full border border-charcoal/20 rounded-lg px-3 py-3 mb-2 font-mono focus:border-amber focus:outline-none" required />
-            <input value={driver} onChange={(e) => setDriver(e.target.value)} placeholder="Driver Name"
-              className="w-full border border-charcoal/20 rounded-lg px-3 py-3 mb-3 focus:border-amber focus:outline-none" required />
-            {truckError && <p className="text-red-alert text-sm mb-2">{truckError}</p>}
-            <button type="submit" disabled={truckLoading}
-              className="w-full bg-amber text-charcoal font-bold py-3 rounded-lg disabled:opacity-50">
-              {truckLoading ? 'Registering…' : 'Register Truck'}
-            </button>
+        <>
+          <form onSubmit={addTruck} className="bg-surface rounded-2xl shadow-card p-5 mb-6 space-y-3">
+            <h2 className="text-lg font-semibold">Register a truck</h2>
+            <Field label="Plate number">
+              <input value={plate} onChange={(e) => setPlate(e.target.value.toUpperCase())} placeholder="KJA-482-XA" className={`${inputCls} font-mono`} required minLength={3} autoCapitalize="characters" />
+            </Field>
+            <Field label="Driver">
+              <input value={driver} onChange={(e) => setDriver(e.target.value)} placeholder="Full name" className={inputCls} required minLength={2} autoComplete="off" />
+            </Field>
+            <ErrorNote>{truckError}</ErrorNote>
+            <Button type="submit" className="w-full" loading={truckLoading}>Register and make QR code</Button>
           </form>
 
-          <div className="space-y-2">
-            {trucks.map((t) => (
-              <div key={t.id} className="bg-white rounded-xl p-4 shadow-sm flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="font-mono font-bold">{t.plateNumber}</p>
-                  <p className="text-sm text-charcoal/60">{t.driverName}</p>
-                  {t.qrCodes[0] && <p className="text-xs font-mono text-charcoal/40">{t.qrCodes[0].codeString}</p>}
-                </div>
-                <button onClick={() => setQrTruck(t)}
-                  className="bg-charcoal text-paper text-sm px-4 py-2 rounded-lg font-semibold flex-shrink-0">
-                  QR
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
+          {trucks === null ? (
+            <div className="h-40 rounded-2xl bg-charcoal/[0.05] animate-pulse" />
+          ) : (
+            <ul className="bg-surface rounded-2xl shadow-card divide-y divide-line">
+              {trucks.map((t) => (
+                <li key={t.id} className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-mono font-semibold">{t.plateNumber}</p>
+                      <p className="text-sm text-ink-2 truncate">{t.driverName}</p>
+                    </div>
+                    <Button
+                      size="md"
+                      variant={openQr === t.id ? 'ghost' : 'outline'}
+                      aria-expanded={openQr === t.id}
+                      onClick={() => setOpenQr(openQr === t.id ? null : t.id)}
+                      icon={openQr === t.id ? <X className="size-4" aria-hidden /> : <QrCode className="size-4" aria-hidden />}
+                    >
+                      {openQr === t.id ? 'Hide' : 'QR code'}
+                    </Button>
+                  </div>
+                  {openQr === t.id && (
+                    <div className="anim-done mt-3 flex flex-col sm:flex-row items-center gap-4 rounded-xl bg-paper p-4">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={`/api/admin/trucks/${t.id}/qr`} alt={`QR code for ${t.plateNumber}`} width={160} height={160} className="size-40 rounded-lg bg-white" />
+                      <div className="text-center sm:text-left">
+                        <p className="text-sm text-ink-2">Print and fix to the cab door. Encodes</p>
+                        <p className="font-mono text-sm">{t.qrCodes[0]?.codeString}</p>
+                        <a
+                          href={`/api/admin/trucks/${t.id}/qr`}
+                          download={`${t.plateNumber}-qr.png`}
+                          className="mt-3 inline-flex items-center gap-2 min-h-11 px-4 rounded-lg bg-charcoal text-paper font-semibold hover:bg-charcoal/85"
+                        >
+                          <Download className="size-4" aria-hidden /> Download PNG
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
 
       {tab === 'users' && (
-        <div>
-          <form onSubmit={addUser} className="bg-white rounded-xl p-4 shadow-sm mb-4">
-            <h3 className="font-bold text-sm uppercase tracking-wide text-charcoal/50 mb-3">Create User</h3>
-            <input value={uPhone} onChange={(e) => setUPhone(e.target.value)} placeholder="Phone" type="tel"
-              className="w-full border border-charcoal/20 rounded-lg px-3 py-3 mb-2 font-mono focus:border-amber focus:outline-none" required />
-            <input value={uPin} onChange={(e) => setUPin(e.target.value)} placeholder="4-digit PIN" maxLength={4}
-              className="w-full border border-charcoal/20 rounded-lg px-3 py-3 mb-2 font-mono focus:border-amber focus:outline-none" required />
-            <input value={uName} onChange={(e) => setUName(e.target.value)} placeholder="Full Name"
-              className="w-full border border-charcoal/20 rounded-lg px-3 py-3 mb-2 focus:border-amber focus:outline-none" required />
-            <select value={uRole} onChange={(e) => setURole(e.target.value)}
-              className="w-full border border-charcoal/20 rounded-lg px-3 py-3 mb-3 focus:border-amber focus:outline-none">
-              {ROLES.map((r) => <option key={r}>{r}</option>)}
-            </select>
-            {userError && <p className="text-red-alert text-sm mb-2">{userError}</p>}
-            <button type="submit" disabled={userLoading}
-              className="w-full bg-amber text-charcoal font-bold py-3 rounded-lg disabled:opacity-50">
-              {userLoading ? 'Creating…' : 'Create User'}
-            </button>
+        <>
+          <form onSubmit={addUser} className="bg-surface rounded-2xl shadow-card p-5 mb-6 space-y-3">
+            <h2 className="text-lg font-semibold">Add a person</h2>
+            <Field label="Full name">
+              <input value={uName} onChange={(e) => setUName(e.target.value)} className={inputCls} required autoComplete="off" />
+            </Field>
+            <div className="grid grid-cols-[1fr_8rem] gap-3">
+              <Field label="Phone number">
+                <input value={uPhone} onChange={(e) => setUPhone(e.target.value)} type="tel" inputMode="numeric" className={`${inputCls} font-mono`} required autoComplete="off" />
+              </Field>
+              <Field label="4-digit PIN">
+                <input
+                  value={uPin}
+                  onChange={(e) => setUPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  inputMode="numeric"
+                  pattern="\d{4}"
+                  title="Exactly 4 digits"
+                  className={`${inputCls} font-mono tracking-[0.3em]`}
+                  required
+                  autoComplete="off"
+                />
+              </Field>
+            </div>
+            <Field label="Role">
+              <select value={uRole} onChange={(e) => setURole(e.target.value)} className={inputCls}>
+                {ALL_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+              </select>
+            </Field>
+            <ErrorNote>{userError}</ErrorNote>
+            <Button type="submit" className="w-full" loading={userLoading}>Add person</Button>
           </form>
 
-          <div className="space-y-2">
-            {users.map((u) => (
-              <div key={u.id} className="bg-white rounded-xl p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold">{u.fullName}</p>
-                    <p className="text-sm font-mono text-charcoal/60">{u.phone}</p>
+          {users === null ? (
+            <div className="h-40 rounded-2xl bg-charcoal/[0.05] animate-pulse" />
+          ) : (
+            <ul className="bg-surface rounded-2xl shadow-card divide-y divide-line">
+              {users.map((u) => (
+                <li key={u.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate">{u.fullName}</p>
+                    <p className="text-sm font-mono text-ink-2">{u.phone}</p>
                   </div>
-                  <span className="text-xs bg-charcoal/10 px-2 py-1 rounded font-semibold">{u.role.replace('_', ' ')}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+                  <span className="text-xs font-semibold bg-charcoal/[0.07] px-2 py-1 rounded-md whitespace-nowrap">{ROLE_LABELS[u.role] ?? u.role}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
 
-      {/* QR Modal */}
-      {qrTruck && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setQrTruck(null)}>
-          <div className="bg-white rounded-2xl p-6 max-w-xs w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-bold text-lg mb-1">{qrTruck.plateNumber}</h3>
-            <p className="text-sm text-charcoal/60 mb-4">{qrTruck.driverName}</p>
-            <div className="border-2 border-charcoal/20 rounded-xl overflow-hidden mb-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`/api/admin/trucks/${qrTruck.id}/qr`} alt="QR Code" className="w-full" />
-            </div>
-            <a href={`/api/admin/trucks/${qrTruck.id}/qr`} download={`${qrTruck.plateNumber}-qr.png`}
-              className="block w-full bg-charcoal text-paper text-center py-3 rounded-xl font-bold mb-2">
-              Download PNG
-            </a>
-            <button onClick={() => setQrTruck(null)} className="w-full border border-charcoal/30 py-3 rounded-xl font-bold">
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+      {tab === 'targets' && <TargetsEditor />}
     </div>
   );
 }

@@ -26,3 +26,12 @@ export async function withAuth(
     return err(msg, 500);
   }
 }
+
+/** Inclusive date-only range ("YYYY-MM-DD") → Prisma filter; `to` covers the whole day. */
+export function dateRange(from: string | null, to: string | null) {
+  if (!from && !to) return undefined;
+  return {
+    ...(from && { gte: new Date(`${from}T00:00:00`) }),
+    ...(to && { lte: new Date(`${to}T23:59:59.999`) }),
+  };
+}

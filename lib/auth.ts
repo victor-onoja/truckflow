@@ -3,9 +3,13 @@ import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
 import bcrypt from 'bcryptjs';
 
-const SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET ?? 'truckflow-dev-secret-change-in-prod'
-);
+const DEV_SECRET = 'truckflow-dev-secret-change-in-prod';
+// Resolved lazily so `next build` (which runs with NODE_ENV=production) doesn't need the secret.
+function secret(): Uint8Array {
+  const s = process.env.JWT_SECRET;
+  if (!s && process.env.NODE_ENV === 'production') throw new Error('JWT_SECRET must be set in production');
+  return new TextEncoder().encode(s ?? DEV_SECRET);
+}
 const COOKIE = 'tf_session';
 const EXPIRES = 60 * 60 * 12; // 12 hours
 
@@ -20,12 +24,12 @@ export async function signSession(payload: SessionPayload): Promise<string> {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(`${EXPIRES}s`)
-    .sign(SECRET);
+    .sign(secret());
 }
 
 export async function verifySession(token: string): Promise<SessionPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, SECRET);
+    const { payload } = await jwtVerify(token, secret());
     return payload as unknown as SessionPayload;
   } catch {
     return null;

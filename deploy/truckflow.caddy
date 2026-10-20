@@ -1,0 +1,6 @@
+# TruckFlow demo (~/truckflow). Remove this file and reload Caddy to take it
+# down; nothing else references it.
+truckflow.victoronojaodoh.com {
+	encode zstd gzip
+	reverse_proxy truckflow-web:3000
+}

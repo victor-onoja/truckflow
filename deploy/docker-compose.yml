@@ -1,0 +1,29 @@
+# TruckFlow on the VPS. Reached only through the quantic-pro Caddy
+# (see deploy/truckflow.caddy) over its Docker network; no public ports.
+name: truckflow
+
+services:
+  truckflow-web:
+    build:
+      context: ..
+      args:
+        NEXT_PUBLIC_DEMO_MODE: "1"
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - truckflow_data:/data
+    networks: [edge]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  truckflow_data:
+
+networks:
+  edge:
+    external: true
+    name: quantic-pro_default

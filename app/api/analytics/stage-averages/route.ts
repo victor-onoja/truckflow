@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server';
-import { withAuth, ok } from '@/lib/api-helpers';
+import { withAuth, ok, dateRange } from '@/lib/api-helpers';
 import prisma from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
-  return withAuth(req, ['SUPERVISOR', 'ADMIN'], async () => {
+  return withAuth(req, ['SUPERVISOR', 'DISTRIBUTION_LEAD', 'ADMIN'], async () => {
     const { searchParams } = new URL(req.url);
     const dateFrom = searchParams.get('dateFrom');
     const dateTo = searchParams.get('dateTo');
@@ -11,8 +11,7 @@ export async function GET(req: NextRequest) {
     const visits = await prisma.visit.findMany({
       where: {
         status: 'COMPLETED',
-        ...(dateFrom && { gateInAt: { gte: new Date(dateFrom) } }),
-        ...(dateTo && { gateInAt: { lte: new Date(dateTo) } }),
+        gateInAt: dateRange(dateFrom, dateTo),
       },
       include: { events: true },
     });
@@ -21,6 +20,7 @@ export async function GET(req: NextRequest) {
     const map: Record<string, Record<string, number[]>> = {};
     for (const v of visits) {
       if (!map[v.visitType]) map[v.visitType] = {};
+      if (v.totalMinutes != null) (map[v.visitType].TCT ??= []).push(v.totalMinutes);
       for (const e of v.events) {
         if (e.durationMinutes == null) continue;
         if (!map[v.visitType][e.stageKey]) map[v.visitType][e.stageKey] = [];

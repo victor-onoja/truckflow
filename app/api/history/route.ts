@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { withAuth, ok } from '@/lib/api-helpers';
+import { withAuth, ok, dateRange } from '@/lib/api-helpers';
 import prisma from '@/lib/prisma';
 import { queuingDuration } from '@/lib/stage-machine';
 
@@ -14,8 +14,7 @@ export async function GET(req: NextRequest) {
     const visits = await prisma.visit.findMany({
       where: {
         status: 'COMPLETED',
-        ...(dateFrom && { gateInAt: { gte: new Date(dateFrom) } }),
-        ...(dateTo && { gateInAt: { lte: new Date(dateTo) } }),
+        gateInAt: dateRange(dateFrom, dateTo),
         ...(truckId && { truckId }),
         ...(visitType && { visitType: visitType as never }),
       },

@@ -1,6 +1,6 @@
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -109,4 +109,15 @@ model Notification {
   visitId   String?
   readAt    DateTime?
   createdAt DateTime     @default(now())
+}
+
+// Admin-editable time targets (minutes). Key is a stage key (e.g. LOADING) or
+// TCT_<VISIT_TYPE> for whole-visit turnaround. Missing rows fall back to the
+// defaults in lib/targets.ts.
+model TimeTarget {
+  key         String   @id
+  targetMin   Int
+  limitMin    Int
+  updatedAt   DateTime @updatedAt
+  updatedById String?
 }
