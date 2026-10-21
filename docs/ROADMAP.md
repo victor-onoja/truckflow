@@ -42,8 +42,8 @@ Rough count for a full-cycle truck: **~22 taps/fields → 9 taps** (1 scan + gat
 7. **Data-quality guardrails.** Flag implausibly short stages (someone tapped
    start and end together after the fact), and show each operator their own
    "late taps" so the data stays honest.
-8. **Automatic shift reports.** End-of-shift email/WhatsApp to distribution
-   leads: trucks in/out, average turnaround, worst bottleneck, carriers over SLA.
+8. **Automatic shift reports.** End-of-shift email/WhatsApp to
+   supervisors: trucks in/out, average turnaround, worst bottleneck, carriers over SLA.
 
 ## Then: sensors replace taps
 

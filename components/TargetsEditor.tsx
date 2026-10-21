@@ -71,8 +71,7 @@ export default function TargetsEditor() {
     <div>
       <p className="text-ink-2 mb-5">
         <span className="font-semibold text-charcoal">Target</span> is when a truck starts showing amber.{' '}
-        <span className="font-semibold text-charcoal">Limit</span> turns it red and alerts supervisors and distribution
-        leads. Changes apply to every screen within seconds.
+        <span className="font-semibold text-charcoal">Limit</span> turns it red and alerts supervisors. Changes apply to every screen within seconds.
       </p>
 
       <div className="space-y-6">

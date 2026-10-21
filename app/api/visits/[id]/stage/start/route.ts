@@ -10,7 +10,7 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  return withAuth(req, ['YARD_OPERATOR', 'FUELING_STAFF', 'ADMIN'], async (session) => {
+  return withAuth(req, ['FORKLIFT_OPERATOR', 'FUELING_STAFF', 'ADMIN'], async (session) => {
     const { id } = await params;
     const body = await req.json().catch(() => ({}));
     const parsed = schema.safeParse(body);

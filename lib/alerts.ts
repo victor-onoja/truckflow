@@ -43,7 +43,7 @@ export async function checkDelays(now = new Date()) {
   if (alerts.length === 0) return;
 
   const recipients = await prisma.user.findMany({
-    where: { role: { in: ['SUPERVISOR', 'DISTRIBUTION_LEAD'] }, isActive: true },
+    where: { role: 'SUPERVISOR', isActive: true },
     select: { id: true },
   });
 

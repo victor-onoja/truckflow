@@ -6,7 +6,7 @@ import { getTargets } from '@/lib/targets-server';
 
 // Headline numbers for today, independent of any history filters.
 export async function GET(req: NextRequest) {
-  return withAuth(req, ['SUPERVISOR', 'DISTRIBUTION_LEAD', 'ADMIN'], async () => {
+  return withAuth(req, ['SUPERVISOR', 'ADMIN'], async () => {
     const now = new Date();
     const startOfDay = new Date(now);
     startOfDay.setHours(0, 0, 0, 0);

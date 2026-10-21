@@ -48,7 +48,7 @@ export default function ActionPanel({
   useEffect(() => () => clearTimeout(armTimer.current), []);
 
   const run = async () => {
-    // Gate out notifies distribution and can't be undone, so it takes a second tap.
+    // Gate out notifies supervisors and can't be undone, so it takes a second tap.
     if (next.kind === 'GATE_OUT' && !armed) {
       setArmedFor(stepId);
       clearTimeout(armTimer.current);

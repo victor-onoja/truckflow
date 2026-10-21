@@ -3,22 +3,20 @@
 
 export const ALL_ROLES = [
   'GATE_OFFICER',
-  'YARD_OPERATOR',
+  'FORKLIFT_OPERATOR',
   'FUELING_STAFF',
   'SUPERVISOR',
-  'DISTRIBUTION_LEAD',
   'ADMIN',
 ] as const;
 
-export const FIELD_ROLES = ['GATE_OFFICER', 'YARD_OPERATOR', 'FUELING_STAFF', 'ADMIN'];
-export const OVERSIGHT_ROLES = ['SUPERVISOR', 'DISTRIBUTION_LEAD', 'ADMIN'];
+export const FIELD_ROLES = ['GATE_OFFICER', 'FORKLIFT_OPERATOR', 'FUELING_STAFF', 'ADMIN'];
+export const OVERSIGHT_ROLES = ['SUPERVISOR', 'ADMIN'];
 
 export const ROLE_LABELS: Record<string, string> = {
   GATE_OFFICER: 'Gate officer',
-  YARD_OPERATOR: 'Yard operator',
+  FORKLIFT_OPERATOR: 'Forklift operator',
   FUELING_STAFF: 'Fueling staff',
   SUPERVISOR: 'Supervisor',
-  DISTRIBUTION_LEAD: 'Distribution lead',
   ADMIN: 'Admin',
 };
 
@@ -35,6 +33,6 @@ export function canOpenPage(path: string, role: string): boolean {
 }
 
 export function homeFor(role: string): string {
-  if (role === 'SUPERVISOR' || role === 'DISTRIBUTION_LEAD') return '/dashboard';
+  if (role === 'SUPERVISOR') return '/dashboard';
   return '/queue';
 }

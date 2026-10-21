@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
+import { ALL_ROLES } from '@/lib/access';
 import { withAuth, ok, err } from '@/lib/api-helpers';
 import prisma from '@/lib/prisma';
 import { hashPin } from '@/lib/auth';
@@ -8,7 +9,7 @@ const schema = z.object({
   phone: z.string().min(10),
   pin: z.string().length(4),
   fullName: z.string().min(2),
-  role: z.enum(['GATE_OFFICER', 'YARD_OPERATOR', 'FUELING_STAFF', 'SUPERVISOR', 'DISTRIBUTION_LEAD', 'ADMIN']),
+  role: z.enum(ALL_ROLES),
 });
 
 export async function POST(req: NextRequest) {

@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 import { queuingDuration } from '@/lib/stage-machine';
 
 export async function GET(req: NextRequest) {
-  return withAuth(req, ['SUPERVISOR', 'DISTRIBUTION_LEAD', 'ADMIN'], async () => {
+  return withAuth(req, ['SUPERVISOR', 'ADMIN'], async () => {
     const { searchParams } = new URL(req.url);
     const dateFrom = searchParams.get('dateFrom');
     const dateTo = searchParams.get('dateTo');

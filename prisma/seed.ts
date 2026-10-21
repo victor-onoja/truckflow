@@ -16,7 +16,7 @@ async function main() {
     prisma.user.upsert({
       where: { phone: '08010000002' },
       update: {},
-      create: { phone: '08010000002', pinHash, fullName: 'Yard Operator Demo', role: 'YARD_OPERATOR' },
+      create: { phone: '08010000002', pinHash, fullName: 'Forklift Operator Demo', role: 'FORKLIFT_OPERATOR' },
     }),
     prisma.user.upsert({
       where: { phone: '08010000003' },
@@ -27,11 +27,6 @@ async function main() {
       where: { phone: '08010000004' },
       update: {},
       create: { phone: '08010000004', pinHash, fullName: 'Supervisor Demo', role: 'SUPERVISOR' },
-    }),
-    prisma.user.upsert({
-      where: { phone: '08010000005' },
-      update: {},
-      create: { phone: '08010000005', pinHash, fullName: 'Distribution Lead Demo', role: 'DISTRIBUTION_LEAD' },
     }),
     prisma.user.upsert({
       where: { phone: '08010000006' },
@@ -167,10 +162,9 @@ async function main() {
   console.log('✅ Seed complete');
   console.log('Demo logins (PIN: 1234):');
   console.log('  Gate Officer:      08010000001');
-  console.log('  Yard Operator:     08010000002');
+  console.log('  Forklift Operator: 08010000002');
   console.log('  Fueling Staff:     08010000003');
   console.log('  Supervisor:        08010000004');
-  console.log('  Distribution Lead: 08010000005');
   console.log('  Admin:             08010000006');
 }
 

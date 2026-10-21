@@ -44,7 +44,7 @@ function fmt(d: Date | null): string {
 
 export async function notifyGateOut(visit: VisitWithTruck) {
   const recipients = await prisma.user.findMany({
-    where: { role: { in: ['DISTRIBUTION_LEAD', 'SUPERVISOR'] }, isActive: true },
+    where: { role: 'SUPERVISOR', isActive: true },
   });
   const body = `${visit.truck.plateNumber} (${visit.visitType}) gated out at ${fmt(visit.gateOutAt)}. Total: ${visit.totalMinutes ?? '?'} min.`;
   await Promise.all(

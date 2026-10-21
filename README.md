@@ -26,10 +26,9 @@ Open <http://localhost:3000>. Demo logins (PIN `1234`):
 | Role | Phone |
 | --- | --- |
 | Gate officer | 08010000001 |
-| Yard operator | 08010000002 |
+| Forklift operator | 08010000002 |
 | Fueling staff | 08010000003 |
 | Supervisor | 08010000004 |
-| Distribution lead | 08010000005 |
 | Admin | 08010000006 |
 
 Reset demo data: `rm prisma/dev.db && npx prisma migrate deploy && npm run seed`.
